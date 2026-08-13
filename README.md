@@ -10,9 +10,10 @@ LINE group the team already lives in, at the time the task is actually due.
 Built as a web dashboard, a Postgres-backed scheduler, and a LINE Messaging
 API integration — running entirely on Vercel + Supabase free tiers.
 
-**Live:** the deployed instance sends a scheduled LINE message to a group
-twice a day on weekdays, with the send times, message text, and target
-groups all editable from the dashboard.
+**[Try the demo](https://line-msg-v2.vercel.app/demo.html)** — no login, fully
+interactive, entirely mock data. Nothing you do there touches LINE or the
+real database; the production instance runs the same UI against a live LINE
+group and isn't public for that reason.
 
 ## Why this exists
 

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>line-msg-v2 — DEMO (ข้อมูลจำลอง)</title>
+  <meta name="robots" content="index, follow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/app.css" />
+  <style>
+    .demo-banner {
+      background: var(--amber);
+      color: #241703;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-align: center;
+      padding: 8px 12px;
+    }
+    .demo-banner a { color: #241703; }
+  </style>
+</head>
+<body>
+  <div class="demo-banner">
+    🎫 DEMO — ข้อมูลจำลองทั้งหมด ไม่เชื่อมกับ LINE หรือฐานข้อมูลจริง ·
+    <a href="https://github.com/Olay097056/line-msg-v2" target="_blank" rel="noopener">ดูโค้ดจริงบน GitHub</a>
+  </div>
+
+  <div id="app-view">
+    <header>
+      <div class="brand">
+        <span class="brand-mark">◆</span>
+        <span class="brand-name">LINE-MSG-V2 · DEMO</span>
+      </div>
+      <div class="row">
+        <span id="clock" class="header-clock"></span>
+      </div>
+    </header>
+
+    <main>
+      <section class="board hero-board" id="hero-board" aria-label="รอบส่งถัดไป">
+        <div class="board-bezel">
+          <div class="eyebrow">รอบส่งถัดไป · NEXT DEPARTURE</div>
+          <div id="hero-body" class="hero-grid"></div>
+        </div>
+      </section>
+
+      <section class="board" id="quota-panel">
+        <div class="board-bezel">
+          <div class="eyebrow">โควต้า LINE · QUOTA</div>
+          <div id="quota-body"></div>
+        </div>
+      </section>
+
+      <section class="board">
+        <div class="board-bezel">
+          <div class="eyebrow">ส่งด่วน · MANUAL DISPATCH</div>
+          <form id="send-form">
+            <div class="field">
+              <label for="send-group">กลุ่มปลายทาง</label>
+              <select id="send-group"></select>
+            </div>
+            <div class="field">
+              <label for="send-body">ข้อความ (เว้นว่าง = ใช้ข้อความมาตรฐาน)</label>
+              <textarea id="send-body" placeholder="เตือนเช็คสต็อกก่อนเปิดร้าน"></textarea>
+            </div>
+            <button type="submit" class="btn-primary">ส่งเลย</button>
+            <div id="send-msg" class="msg"></div>
+          </form>
+        </div>
+      </section>
+
+      <section class="board">
+        <div class="board-bezel">
+          <div class="eyebrow">ตารางเวลา · SCHEDULE</div>
+          <div id="schedules-body"></div>
+          <form id="schedule-form" class="row form-row">
+            <select id="sched-group"></select>
+            <select id="sched-message"></select>
+            <input id="sched-time" type="time" required />
+            <label class="row check-label">
+              <input id="sched-weekdays" type="checkbox" checked style="width:auto" /> เฉพาะวันทำงาน
+            </label>
+            <button type="submit">เพิ่มเวลา</button>
+          </form>
+          <div id="schedule-msg" class="msg"></div>
+        </div>
+      </section>
+
+      <section class="board">
+        <div class="board-bezel">
+          <div class="eyebrow">กลุ่มปลายทาง · GROUPS</div>
+          <div id="groups-body"></div>
+          <form id="group-form" class="row form-row">
+            <input id="group-line-id" placeholder="LINE group ID (Cxxxxxxxx...)" style="flex:1;min-width:220px" required />
+            <button type="submit">เพิ่มกลุ่ม</button>
+          </form>
+          <div id="group-msg" class="msg"></div>
+        </div>
+      </section>
+
+      <section class="board">
+        <div class="board-bezel">
+          <div class="eyebrow">ข้อความ · MESSAGES</div>
+          <div id="message-body"></div>
+          <form id="message-form" class="row form-row">
+            <input id="new-message-name" placeholder="ชื่อข้อความ (เช่น เช้า / เย็น / วันหยุด)" style="flex:1;min-width:200px" required />
+            <button type="submit">เพิ่มข้อความใหม่</button>
+          </form>
+          <div id="message-form-msg" class="msg"></div>
+        </div>
+      </section>
+
+      <section class="board">
+        <div class="board-bezel">
+          <div class="eyebrow">บันทึกการทำงาน · LOG</div>
+          <div class="tabs">
+            <button type="button" class="tab-btn active" data-kind="send">ประวัติการส่ง</button>
+            <button type="button" class="tab-btn" data-kind="system">ระบบ / error</button>
+          </div>
+          <div id="logs-body"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="board-footer">line-msg-v2 — DEMO mode · <a href="https://github.com/Olay097056/line-msg-v2" style="color:inherit">github.com/Olay097056/line-msg-v2</a></footer>
+  </div>
+
+  <script src="/demo.js"></script>
+</body>
+</html>
