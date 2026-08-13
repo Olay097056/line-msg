@@ -3,97 +3,133 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>line-msg-v2 — control panel</title>
+  <title>line-msg-v2 — ป้ายเวลาส่งข้อความ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/app.css" />
 </head>
 <body>
   <div id="login-view">
-    <form id="login-form" class="login-box">
-      <h1>line-msg-v2</h1>
-      <div class="field">
-        <label for="password">รหัสผ่าน</label>
-        <input id="password" type="password" autocomplete="current-password" required />
+    <div class="login-board">
+      <div class="board-bezel">
+        <div class="eyebrow">LINE-MSG · CONTROL</div>
+        <div class="split-word" aria-hidden="true">
+          <span class="flap-static">0</span><span class="flap-static">7</span><span class="flap-colon">:</span><span class="flap-static">1</span><span class="flap-static">5</span>
+        </div>
+        <form id="login-form" class="login-form">
+          <div class="field">
+            <label for="password">รหัสผ่านเข้าระบบ</label>
+            <input id="password" type="password" autocomplete="current-password" required />
+          </div>
+          <button type="submit" class="btn-primary" style="width:100%">เข้าสู่ระบบ</button>
+          <div id="login-msg" class="msg error"></div>
+        </form>
       </div>
-      <button type="submit" style="width:100%">เข้าสู่ระบบ</button>
-      <div id="login-msg" class="msg error"></div>
-    </form>
+    </div>
   </div>
 
   <div id="app-view" class="hidden">
     <header>
-      <h1>line-msg-v2</h1>
+      <div class="brand">
+        <span class="brand-mark">◆</span>
+        <span class="brand-name">LINE-MSG-V2</span>
+      </div>
       <div class="row">
-        <span id="clock" style="font-size:13px;color:var(--muted)"></span>
+        <span id="clock" class="header-clock"></span>
         <button class="secondary" id="logout-btn">ออกจากระบบ</button>
       </div>
     </header>
 
     <main>
-      <section class="panel" id="quota-panel">
-        <h2>โควต้า LINE</h2>
-        <div id="quota-body"></div>
-      </section>
-
-      <section class="panel">
-        <h2>ส่งข้อความทันที</h2>
-        <form id="send-form">
-          <div class="field">
-            <label for="send-group">กลุ่ม</label>
-            <select id="send-group"></select>
-          </div>
-          <div class="field">
-            <label for="send-body">ข้อความ (เว้นว่าง = ใช้ข้อความมาตรฐาน)</label>
-            <textarea id="send-body" placeholder="Send TIME"></textarea>
-          </div>
-          <button type="submit">ส่งเลย</button>
-          <div id="send-msg" class="msg"></div>
-        </form>
-      </section>
-
-      <section class="panel">
-        <h2>ตารางเวลา</h2>
-        <div id="schedules-body"></div>
-        <form id="schedule-form" class="row" style="margin-top:12px">
-          <select id="sched-group"></select>
-          <select id="sched-message"></select>
-          <input id="sched-time" type="time" required />
-          <label class="row" style="font-size:13px;color:var(--muted)">
-            <input id="sched-weekdays" type="checkbox" checked style="width:auto" /> เฉพาะวันทำงาน
-          </label>
-          <button type="submit">เพิ่มเวลา</button>
-        </form>
-        <div id="schedule-msg" class="msg"></div>
-      </section>
-
-      <section class="panel">
-        <h2>กลุ่ม</h2>
-        <div id="groups-body"></div>
-        <form id="group-form" class="row" style="margin-top:12px">
-          <input id="group-line-id" placeholder="LINE group ID (Cxxxxxxxx...)" style="flex:1;min-width:220px" required />
-          <button type="submit">เพิ่มกลุ่ม</button>
-        </form>
-        <div id="group-msg" class="msg"></div>
-      </section>
-
-      <section class="panel">
-        <h2>ข้อความ</h2>
-        <div id="message-body"></div>
-        <form id="message-form" class="row" style="margin-top:12px">
-          <input id="new-message-name" placeholder="ชื่อข้อความ (เช่น เช้า / เย็น / วันหยุด)" style="flex:1;min-width:200px" required />
-          <button type="submit">เพิ่มข้อความใหม่</button>
-        </form>
-        <div id="message-form-msg" class="msg"></div>
-      </section>
-
-      <section class="panel">
-        <h2>บันทึกการทำงาน</h2>
-        <div class="tabs">
-          <button type="button" class="tab-btn active" data-kind="send">ประวัติการส่ง</button>
-          <button type="button" class="tab-btn" data-kind="system">ระบบ / error</button>
+      <!-- Hero departure-board row: the next scheduled send, styled as a
+           real split-flap board (the page's signature element). -->
+      <section class="board hero-board" id="hero-board" aria-label="รอบส่งถัดไป">
+        <div class="board-bezel">
+          <div class="eyebrow">รอบส่งถัดไป · NEXT DEPARTURE</div>
+          <div id="hero-body" class="hero-grid"></div>
         </div>
-        <div id="logs-body"></div>
+      </section>
+
+      <section class="board" id="quota-panel">
+        <div class="board-bezel">
+          <div class="eyebrow">โควต้า LINE · QUOTA</div>
+          <div id="quota-body"></div>
+        </div>
+      </section>
+
+      <section class="board">
+        <div class="board-bezel">
+          <div class="eyebrow">ส่งด่วน · MANUAL DISPATCH</div>
+          <form id="send-form">
+            <div class="field">
+              <label for="send-group">กลุ่มปลายทาง</label>
+              <select id="send-group"></select>
+            </div>
+            <div class="field">
+              <label for="send-body">ข้อความ (เว้นว่าง = ใช้ข้อความมาตรฐาน)</label>
+              <textarea id="send-body" placeholder="Send TIME"></textarea>
+            </div>
+            <button type="submit" class="btn-primary">ส่งเลย</button>
+            <div id="send-msg" class="msg"></div>
+          </form>
+        </div>
+      </section>
+
+      <section class="board">
+        <div class="board-bezel">
+          <div class="eyebrow">ตารางเวลา · SCHEDULE</div>
+          <div id="schedules-body"></div>
+          <form id="schedule-form" class="row form-row">
+            <select id="sched-group"></select>
+            <select id="sched-message"></select>
+            <input id="sched-time" type="time" required />
+            <label class="row check-label">
+              <input id="sched-weekdays" type="checkbox" checked style="width:auto" /> เฉพาะวันทำงาน
+            </label>
+            <button type="submit">เพิ่มเวลา</button>
+          </form>
+          <div id="schedule-msg" class="msg"></div>
+        </div>
+      </section>
+
+      <section class="board">
+        <div class="board-bezel">
+          <div class="eyebrow">กลุ่มปลายทาง · GROUPS</div>
+          <div id="groups-body"></div>
+          <form id="group-form" class="row form-row">
+            <input id="group-line-id" placeholder="LINE group ID (Cxxxxxxxx...)" style="flex:1;min-width:220px" required />
+            <button type="submit">เพิ่มกลุ่ม</button>
+          </form>
+          <div id="group-msg" class="msg"></div>
+        </div>
+      </section>
+
+      <section class="board">
+        <div class="board-bezel">
+          <div class="eyebrow">ข้อความ · MESSAGES</div>
+          <div id="message-body"></div>
+          <form id="message-form" class="row form-row">
+            <input id="new-message-name" placeholder="ชื่อข้อความ (เช่น เช้า / เย็น / วันหยุด)" style="flex:1;min-width:200px" required />
+            <button type="submit">เพิ่มข้อความใหม่</button>
+          </form>
+          <div id="message-form-msg" class="msg"></div>
+        </div>
+      </section>
+
+      <section class="board">
+        <div class="board-bezel">
+          <div class="eyebrow">บันทึกการทำงาน · LOG</div>
+          <div class="tabs">
+            <button type="button" class="tab-btn active" data-kind="send">ประวัติการส่ง</button>
+            <button type="button" class="tab-btn" data-kind="system">ระบบ / error</button>
+          </div>
+          <div id="logs-body"></div>
+        </div>
       </section>
     </main>
+
+    <footer class="board-footer">line-msg-v2 — Vercel + Supabase</footer>
   </div>
 
   <script src="/app.js"></script>

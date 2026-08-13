@@ -77,6 +77,7 @@ $('#logout-btn').addEventListener('click', async () => {
 async function refresh() {
   state = await api('/api/state');
   renderClock();
+  renderHero();
   renderQuota();
   renderGroupSelects();
   renderMessageSelects();
@@ -88,6 +89,83 @@ async function refresh() {
 
 function renderClock() {
   $('#clock').textContent = `${state.now.date} ${state.now.hhmm} น. (ไทย)`;
+}
+
+// --------------------------------------------------------- hero / next departure
+// The signature element: the next enabled schedule, rendered as a physical
+// split-flap board row (time / route / status). Computed client-side from the
+// same `now` the server used for /api/state, so weekday-skip logic matches
+// exactly what the tick endpoint will actually do.
+function minutesOfTime(hhmmss) {
+  const [h, m] = String(hhmmss).split(':').map(Number);
+  return h * 60 + m;
+}
+
+function computeNextDeparture() {
+  const activeGroupIds = new Set(state.groups.filter((g) => g.status === 'active').map((g) => g.id));
+  const candidates = state.schedules.filter((s) => s.enabled && activeGroupIds.has(s.group_id));
+  if (candidates.length === 0) return null;
+
+  const nowMinutes = state.now.minutes;
+  const nowWeekday = state.now.weekday;
+
+  const daysUntilValid = (weekdaysOnly, startOffset) => {
+    for (let d = startOffset; d < startOffset + 8; d++) {
+      const wd = (nowWeekday + d) % 7;
+      if (!weekdaysOnly || (wd >= 1 && wd <= 5)) return d;
+    }
+    return startOffset;
+  };
+
+  let best = null;
+  for (const s of candidates) {
+    const target = minutesOfTime(s.send_at_local);
+    const dayOffset = target > nowMinutes
+      ? daysUntilValid(s.weekdays_only, 0)
+      : daysUntilValid(s.weekdays_only, 1);
+    const away = dayOffset * 1440 + (target - nowMinutes);
+    if (!best || away < best.away) best = { schedule: s, dayOffset, away };
+  }
+  return best;
+}
+
+function renderHero() {
+  const el = $('#hero-body');
+  const next = computeNextDeparture();
+  if (!next) {
+    el.innerHTML = '<div class="empty">ยังไม่มีตารางเวลาที่ใช้งานอยู่ — เพิ่มได้ที่ด้านล่าง</div>';
+    return;
+  }
+  const { schedule, dayOffset, away } = next;
+  const group = state.groups.find((g) => g.id === schedule.group_id);
+  const digits = fmtTime(schedule.send_at_local).replace(':', '').split('');
+  const dueSoon = dayOffset === 0 && away <= 2;
+  const statusText = dueSoon ? 'กำลังส่ง' : dayOffset === 0 ? 'วันนี้' : dayOffset === 1 ? 'พรุ่งนี้' : `อีก ${dayOffset} วัน`;
+  const statusClass = dueSoon ? 'rust' : 'teal';
+
+  el.innerHTML = `
+    <div class="hero-cell">
+      <span class="hero-cell-label">เวลา · TIME</span>
+      <div class="flap-row">
+        <span class="flap">${digits[0]}</span><span class="flap">${digits[1]}</span>
+        <span class="flap amber" style="min-width:16px;font-size:18px">:</span>
+        <span class="flap">${digits[2]}</span><span class="flap">${digits[3]}</span>
+      </div>
+    </div>
+    <div class="hero-cell">
+      <span class="hero-cell-label">กลุ่ม · ROUTE</span>
+      <div class="flap-row"><span class="flap wide">${escapeHtml(group?.name ?? '—')}</span></div>
+    </div>
+    <div class="hero-cell">
+      <span class="hero-cell-label">สถานะ · STATUS</span>
+      <div class="flap-row"><span class="flap wide ${statusClass}">${statusText}</span></div>
+    </div>
+  `;
+  requestAnimationFrame(() => {
+    el.querySelectorAll('.flap').forEach((f, i) => {
+      setTimeout(() => f.classList.add('flipping'), i * 55);
+    });
+  });
 }
 
 // -------------------------------------------------------------------- quota
@@ -437,3 +515,10 @@ async function renderLogs() {
 }
 
 boot();
+
+// Keep the board honest while it's left open on a wall-mounted screen or a
+// second monitor — refresh quietly every minute so the "next departure" and
+// quota stay current without anyone touching the page.
+setInterval(() => {
+  if (!$('#app-view').classList.contains('hidden')) refresh().catch(() => {});
+}, 60_000);
