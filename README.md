@@ -2,9 +2,13 @@
 
 *[ภาษาไทย](README.th.md)*
 
-A small control panel that replaces a Google Apps Script cron job with a
-proper system: a web dashboard, a Postgres-backed scheduler, and a LINE
-Messaging API integration — running entirely on Vercel + Supabase free tiers.
+A reminder system for **recurring routine work that people forget** — the
+daily and weekly tasks that nobody schedules because "we do that every day
+anyway", right up until the day nobody does. It pushes the reminder into the
+LINE group the team already lives in, at the time the task is actually due.
+
+Built as a web dashboard, a Postgres-backed scheduler, and a LINE Messaging
+API integration — running entirely on Vercel + Supabase free tiers.
 
 **Live:** the deployed instance sends a scheduled LINE message to a group
 twice a day on weekdays, with the send times, message text, and target
@@ -12,7 +16,13 @@ groups all editable from the dashboard.
 
 ## Why this exists
 
-The original version was a single Google Apps Script function on a
+Routine tasks fail in a specific way: they are too small to put in a ticket
+system, too frequent to be memorable, and owned by everyone and therefore no
+one. A calendar reminder pings one person's phone, which they dismiss while
+driving. A LINE message in the group everybody already watches is seen by the
+whole team, and staying silent about it is visibly a choice.
+
+The first attempt at this was a single Google Apps Script function on a
 time-driven trigger, checking the clock every run and firing a hardcoded
 message at two fixed times. It worked, but:
 
