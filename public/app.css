@@ -1,0 +1,187 @@
+/* line-msg-v2 control panel — plain CSS, no framework. */
+
+:root {
+  --bg: #0f1115;
+  --panel: #171a21;
+  --border: #2a2f3a;
+  --text: #e6e8ec;
+  --muted: #8a90a0;
+  --accent: #4f8cff;
+  --danger: #e5484d;
+  --danger-bg: #2a1215;
+  --warn: #e5a44d;
+  --ok: #3ecf8e;
+  font-family: -apple-system, "Segoe UI", "Noto Sans Thai", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  /* Long unbroken Thai sentences (no spaces at natural break points) can
+     otherwise force the whole layout wider than the viewport on mobile. */
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
+}
+
+.hidden { display: none !important; }
+
+/* ------------------------------------------------------------- login */
+#login-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.login-box {
+  width: 320px;
+  padding: 32px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.login-box h1 {
+  font-size: 18px;
+  margin: 0 0 20px;
+}
+
+/* ------------------------------------------------------------- layout */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+header h1 { font-size: 16px; margin: 0; color: var(--muted); }
+
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px;
+  display: grid;
+  gap: 24px;
+}
+
+@media (max-width: 480px) {
+  main { padding: 12px; gap: 16px; }
+  header { padding: 12px; flex-wrap: wrap; gap: 8px; }
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.panel h2 {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 0 0 16px;
+}
+
+/* ------------------------------------------------------------- quota */
+.quota-bar {
+  height: 8px;
+  background: #232733;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 8px 0;
+}
+.quota-bar-fill {
+  height: 100%;
+  background: var(--accent);
+}
+.quota-bar-fill.warn { background: var(--warn); }
+.quota-bar-fill.danger { background: var(--danger); }
+
+.quota-numbers {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.quota-projection {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------- forms */
+input, select, textarea, button {
+  font: inherit;
+  color: var(--text);
+  background: #0f1115;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+textarea { width: 100%; resize: vertical; min-height: 60px; }
+
+button {
+  cursor: pointer;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+  font-weight: 600;
+}
+button:hover { filter: brightness(1.1); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button.secondary { background: transparent; color: var(--text); }
+button.danger { background: var(--danger); border-color: var(--danger); }
+
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.field { display: grid; gap: 4px; margin-bottom: 12px; }
+.field label { font-size: 12px; color: var(--muted); }
+
+/* ------------------------------------------------------------- tables */
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+th { color: var(--muted); font-weight: 500; }
+td.wrap { white-space: normal; }
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.badge.sent { background: #12331f; color: var(--ok); }
+.badge.failed { background: var(--danger-bg); color: var(--danger); }
+.badge.skipped_quota, .badge.skipped_weekend, .badge.skipped_disabled, .badge.skipped_duplicate {
+  background: #332a12; color: var(--warn);
+}
+.badge.active { background: #12331f; color: var(--ok); }
+.badge.pending { background: #332a12; color: var(--warn); }
+.badge.inactive { background: #232733; color: var(--muted); }
+.badge.error { background: var(--danger-bg); color: var(--danger); }
+.badge.warn { background: #332a12; color: var(--warn); }
+.badge.info { background: #16202e; color: var(--accent); }
+
+.msg { font-size: 13px; margin-top: 8px; }
+.msg.error { color: var(--danger); }
+.msg.ok { color: var(--ok); }
+
+.tabs { display: flex; gap: 4px; margin-bottom: 4px; }
+.tabs button { background: transparent; color: var(--muted); border: none; padding: 6px 10px; }
+.tabs button.active { color: var(--text); border-bottom: 2px solid var(--accent); border-radius: 0; }
+
+.empty { color: var(--muted); font-size: 13px; padding: 12px 0; }
