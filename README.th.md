@@ -1,0 +1,116 @@
+# line-msg-v2
+
+*[English version](README.md)*
+
+ระบบควบคุมการส่งข้อความ LINE อัตโนมัติ สร้างมาแทนที่ Google Apps Script cron
+job ตัวเดิม — มีหน้าเว็บควบคุม, ตัวจับเวลาที่ผูกกับฐานข้อมูล, และเชื่อมต่อ LINE
+Messaging API เต็มรูปแบบ รันอยู่บน Vercel + Supabase free tier ทั้งหมด
+
+**ใช้งานจริง:** ระบบที่ deploy แล้วส่งข้อความ LINE เข้ากลุ่มวันละ 2 รอบใน
+วันจันทร์–ศุกร์ โดยเวลาส่ง ข้อความ และกลุ่มปลายทาง แก้ไขได้จากหน้าเว็บทั้งหมด
+ไม่ต้องแตะโค้ด
+
+## ทำไมถึงสร้างระบบนี้
+
+ระบบเดิมเป็นฟังก์ชัน Google Apps Script ตัวเดียวผูกกับ time-driven trigger
+เช็คนาฬิกาทุกครั้งที่รัน แล้วยิงข้อความคงที่ที่ 2 เวลาตายตัว ใช้งานได้จริง
+แต่มีปัญหา:
+
+- แก้ข้อความหรือเวลาส่งได้แค่ทางเดียวคือแก้โค้ด
+- ไม่มีทางรู้เลยว่าการส่งแต่ละครั้งสำเร็จจริงไหม
+- ไม่มีอะไรติดตามโควต้าข้อความรายเดือนของ LINE เลย — การ push เข้ากลุ่มหนึ่งครั้ง
+  จะกินโควต้า **ตามจำนวนคนในกลุ่ม** ไม่ใช่ตามจำนวนครั้งที่เรียก API แปลว่ากลุ่ม
+  เล็ก ๆ ก็ใช้โควต้า free tier หมดเร็วกว่าที่คิดได้ง่าย ๆ
+
+โปรเจกต์นี้ทำงานเดิม (ส่งข้อความตามเวลา) แต่ทำให้ทุกส่วนมองเห็นได้และแก้ไขได้
+โดยไม่ต้องแตะโค้ดเลย
+
+## สถาปัตยกรรม
+
+```
+Supabase pg_cron (ทุกนาที)
+        │  net.http_post พร้อม header x-cron-secret
+        ▼
+Vercel serverless function  /api/tick
+        │  อ่านตาราง schedules ทำงานเฉพาะนาทีที่ตรงเวลาเป๊ะเท่านั้น
+        ▼
+LINE Messaging API  (push, เช็คโควต้า, เช็คจำนวนสมาชิกกลุ่ม)
+        │
+Supabase Postgres  (schedules, groups, message templates, send/system logs)
+        ▲
+Vercel static frontend (vanilla JS, deployment เดียวกัน เรียก /api/* แบบ relative)
+        ▲
+LINE webhook  →  /api/webhook  (event กลุ่ม join/leave/สมาชิกเปลี่ยน,
+                  ตรวจลายเซ็น HMAC จาก raw request body)
+```
+
+ไม่มี framework ไม่มี build step ไม่มี ORM:
+
+- **Backend**: Node/TypeScript serverless function ล้วน ๆ ในโฟลเดอร์ `api/`
+  คอมไพล์ด้วย `tsc` แล้ว deploy ผ่าน Vercel Node runtime แบบ zero-config
+- **Frontend**: static HTML + vanilla JS ในโฟลเดอร์ `public/` เสิร์ฟจาก
+  Vercel project เดียวกับ backend เลยไม่ต้องมี CORS หรือตั้งค่า `API_BASE_URL`
+  ใด ๆ
+- **Database**: เขียน SQL migration เองในโฟลเดอร์ `supabase/migrations/`
+  ยิงผ่าน Supabase Management API — ไม่มี Postgres local ไม่ต้องรองรับ
+  SQLite คู่กับ Postgres
+- **Scheduler**: pg_cron job เดียวทำงานทุกนาที ถามฐานข้อมูลว่า "ตอนนี้ถึงเวลา
+  อะไรหรือยัง" — แก้ตารางเวลาจากหน้าเว็บมีผลตั้งแต่รอบถัดไปทันที ไม่ต้อง
+  deploy ใหม่หรือตั้ง cron ใหม่
+
+## ความสามารถ
+
+- **ส่งด้วยตัวเอง** — เลือกกลุ่ม ใส่ข้อความเอง (หรือไม่ใส่ก็ใช้ข้อความมาตรฐาน)
+  แล้วส่งได้ทันที
+- **ส่งตามตารางเวลา** — ตั้งเวลาส่งได้หลายกลุ่ม หลายรอบเวลา แต่ละรอบผูกข้อความ
+  ของตัวเองได้ เลือกได้ว่าเฉพาะวันทำงานหรือทุกวัน
+- **ติดตามโควต้า** — อ่านค่าจริงจาก LINE API ทั้งจำนวนที่ใช้ไปและลิมิต โชว์
+  จำนวนที่เหลือ พร้อมคำนวณอัตราการใช้ว่าจะพอส่งได้อีกกี่วันทำการ และปฏิเสธการ
+  ส่งถ้าจะทำให้โควต้าเกิน
+- **จัดการกลุ่ม** — เพิ่มกลุ่มด้วย group ID เอง หรือให้ webhook ของ LINE เพิ่มให้
+  อัตโนมัติ (สถานะ pending) ตอนบอทถูกเชิญเข้ากลุ่ม แล้วมายืนยันจากหน้าเว็บ
+- **log แยก 2 แบบ** — ประวัติการส่ง (ส่งจริงหรือข้ามเพราะอะไร) กับ log ระบบ/
+  error (เหตุการณ์เบื้องหลัง, auth ล้มเหลว, webhook ทำงาน) แยกกันตั้งใจ
+- **ล็อกอินด้วยรหัสผ่าน** — รหัสผ่านเดียว hash แบบ bcrypt คุมการเข้าหน้าเว็บ
+  ส่วน endpoint ที่ scheduler เรียกใช้กลไกแยกต่างหาก (shared secret) เพราะ
+  endpoint นั้นต้องให้ Supabase เรียกได้ ซ่อนหลัง login แบบเดียวกันไม่ได้
+
+## จุดออกแบบที่น่าอ่าน
+
+- **เขียนก่อนส่ง (claim-then-send)**: บันทึกแถวสถานะ `sent` ลงฐานข้อมูล
+  **ก่อน** เรียก LINE API เสมอ ทำให้ database constraint (ส่งได้ 1 ครั้งต่อ
+  ตารางเวลาต่อวัน) เป็นตัวกันการส่งซ้ำจริง ๆ ไม่ใช่การล็อกในระดับแอป ถ้า LINE
+  เรียกไม่สำเร็จ แถวนั้นจะถูกลดสถานะเป็น `failed` ซึ่งปลดล็อกให้ลองใหม่รอบหน้าได้
+- **โควต้านับตามจำนวนคน ไม่ใช่จำนวนครั้งที่ส่ง**: ข้อความที่ส่งเข้ากลุ่ม 7 คน
+  กินโควต้า 7 ข้อความ ตัวกันโควต้าคูณด้วยจำนวนสมาชิกกลุ่มจริงที่อ่านสด ไม่ใช่
+  ค่าคงที่ที่ cache ไว้
+- **นาทีที่เงียบไม่เสียอะไรเลย**: cron tick จะเรียก LINE API ก็ต่อเมื่อถึง
+  เวลาที่ตั้งไว้จริงเท่านั้น ไม่งั้น 1,440 tick ต่อวันจะกลายเป็นการเช็คโควต้า
+  1,440 ครั้งโดยไม่จำเป็น
+- **ตรวจลายเซ็น webhook ด้วย raw body**: ปิดการ parse JSON อัตโนมัติของ
+  Vercel สำหรับ route นี้ เพราะถ้าเอา body ที่ parse แล้วมา stringify กลับ
+  ไบต์จะไม่ตรงกับที่ LINE เซ็นมา ทำให้การตรวจ HMAC พังแบบเงียบ ๆ
+
+## รันในเครื่องตัวเอง
+
+```bash
+npm install
+npm test            # tsc typecheck + ชุดเทสต์ node:test (LINE กับ DB ถูก
+                     # stub ทั้งหมด ไม่มีอะไรแตะเน็ตจริง)
+```
+
+ถ้าจะ deploy เป็นของตัวเอง: สร้าง LINE Messaging API channel, Supabase
+project, และ Vercel project แล้วกรอกค่าใน `.env.example` → `.env.local`
+จากนั้น:
+
+```bash
+SUPABASE_PROJECT_REF=<ref> supabase/apply.sh          # รัน migration
+SUPABASE_PROJECT_REF=<ref> supabase/set-cron-secret.sh # ตั้ง cron job
+node scripts/set-password.mjs                          # ตั้งรหัสผ่านหน้าเว็บ
+vercel deploy --prod                                    # deploy จริง
+```
+
+## Stack
+
+Node.js · TypeScript · Vercel Serverless Functions · Supabase (Postgres,
+`pg_cron`, `pg_net`) · LINE Messaging API · vanilla HTML/CSS/JS

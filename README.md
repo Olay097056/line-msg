@@ -1,5 +1,7 @@
 # line-msg-v2
 
+*[ภาษาไทย](README.th.md)*
+
 A small control panel that replaces a Google Apps Script cron job with a
 proper system: a web dashboard, a Postgres-backed scheduler, and a LINE
 Messaging API integration — running entirely on Vercel + Supabase free tiers.
