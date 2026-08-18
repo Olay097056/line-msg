@@ -1,4 +1,4 @@
-# line-msg-v2
+# line-msg
 
 *[ภาษาไทย](README.th.md)*
 
@@ -10,7 +10,7 @@ LINE group the team already lives in, at the time the task is actually due.
 Built as a web dashboard, a Postgres-backed scheduler, and a LINE Messaging
 API integration — running entirely on Vercel + Supabase free tiers.
 
-**[Try the demo](https://line-msg-v2.vercel.app/demo.html)** — no login, fully
+**[Try the demo](https://olay097056.github.io/line-msg-demo/)** — no login, fully
 interactive, entirely mock data. Nothing you do there touches LINE or the
 real database; the production instance runs the same UI against a live LINE
 group and isn't public for that reason.

@@ -1,4 +1,4 @@
-// line-msg-v2 — DEMO mode.
+// line-msg — DEMO mode.
 //
 // A self-contained copy of app.js wired to an in-memory mock instead of the
 // real /api/* endpoints. Nothing here ever touches LINE or Supabase — every

@@ -1,4 +1,4 @@
-// line-msg-v2 control panel — vanilla JS, no build step.
+// line-msg control panel — vanilla JS, no build step.
 // All API calls are same-origin relative paths (frontend and backend share
 // the one Vercel deployment), so there is no API_BASE_URL to configure.
 

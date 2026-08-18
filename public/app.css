@@ -1,4 +1,4 @@
-/* line-msg-v2 — HyperUI light-first design system + dark toggle.
+/* line-msg — HyperUI light-first design system + dark toggle.
    Cross-project theme (applied in switch-wr-tool, portfolio-tracker, ...).
    Source: hyperui.dev design language. Tokens follow hyperui-v2-tokens.md.
    :root = light, [data-theme='dark'] = HyperUI gray override.

@@ -1,4 +1,4 @@
-# line-msg-v2
+# line-msg
 
 *[English version](README.md)*
 
@@ -9,7 +9,7 @@
 สร้างเป็นหน้าเว็บควบคุม + ตัวจับเวลาที่ผูกกับฐานข้อมูล + เชื่อมต่อ LINE
 Messaging API เต็มรูปแบบ รันอยู่บน Vercel + Supabase free tier ทั้งหมด
 
-**[ลองใช้ demo ได้เลย](https://line-msg-v2.vercel.app/demo.html)** — ไม่ต้อง
+**[ลองใช้ demo ได้เลย](https://olay097056.github.io/line-msg-demo/)** — ไม่ต้อง
 login เล่นได้ทุกฟีเจอร์ ข้อมูลจำลองทั้งหมด ไม่มีอะไรไปแตะ LINE หรือฐานข้อมูล
 จริงเลย ส่วน production instance ใช้หน้าตาเดียวกันแต่ต่อกับกลุ่ม LINE จริง
 เลยไม่เปิดสาธารณะด้วยเหตุผลนั้น
