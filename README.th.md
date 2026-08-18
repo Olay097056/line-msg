@@ -99,6 +99,14 @@ LINE webhook  →  /api/webhook  (event กลุ่ม join/leave/สมาช�
 - **ตรวจลายเซ็น webhook ด้วย raw body**: ปิดการ parse JSON อัตโนมัติของ
   Vercel สำหรับ route นี้ เพราะถ้าเอา body ที่ parse แล้วมา stringify กลับ
   ไบต์จะไม่ตรงกับที่ LINE เซ็นมา ทำให้การตรวจ HMAC พังแบบเงียบ ๆ
+- **ธีมเป็นชุด token แบบ HyperUI (light-first + dark mode)**: หน้าเว็บใช้
+  สัญญา `data-theme` ข้ามโปรเจกต์เดียวกันกับโปรเจกต์อื่นของผู้เขียน (ค่าเริ่ม
+  เป็น light, `[data-theme='dark']` เป็นตัวแทนธีมมืด, เก็บค่าที่
+  `localStorage['linemsg_theme']` พร้อม script no-FOUC ใน `<head>` และปุ่ม
+  สลับธีมที่ header) สีทั้งหมดมาจาก semantic token ใน `public/app.css`
+  เท่านั้น — พื้นผิวใช้ `--bg-*`, สีสถานะใช้คู่ soft+text ของ
+  `--success/--warning/--danger` — แปลว่าเปลี่ยนธีมคือแค่เปลี่ยน attribute
+  `data-theme` ตัวเดียว ไม่ใช่แก้ class ทีละตัว
 
 ## รันในเครื่องตัวเอง
 

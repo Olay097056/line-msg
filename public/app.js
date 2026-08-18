@@ -4,6 +4,27 @@
 
 const $ = (sel) => document.querySelector(sel);
 
+// ---- theme bridge (HyperUI light/dark) ----
+// localStorage 'linemsg_theme' (priority) -> cookie 'theme' -> light default.
+// The no-FOUC inline head script already set data-theme before first paint;
+// this wires the toggle + persists on change.
+(function themeBridge() {
+  const KEY = 'linemsg_theme';
+  const COOKIE = 'theme';
+  function setTheme(t) {
+    document.documentElement.dataset.theme = t;
+    try { localStorage.setItem(KEY, t); } catch (e) {}
+    document.cookie = `${COOKIE}=${t}; path=/; max-age=31536000; SameSite=Lax`;
+  }
+  const btn = document.getElementById('theme-toggle');
+  if (btn) {
+    btn.addEventListener('click', () => {
+      const cur = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+      setTheme(cur === 'dark' ? 'light' : 'dark');
+    });
+  }
+})();
+
 async function api(path, opts = {}) {
   const res = await fetch(path, {
     ...opts,
@@ -138,34 +159,24 @@ function renderHero() {
   }
   const { schedule, dayOffset, away } = next;
   const group = state.groups.find((g) => g.id === schedule.group_id);
-  const digits = fmtTime(schedule.send_at_local).replace(':', '').split('');
   const dueSoon = dayOffset === 0 && away <= 2;
   const statusText = dueSoon ? 'กำลังส่ง' : dayOffset === 0 ? 'วันนี้' : dayOffset === 1 ? 'พรุ่งนี้' : `อีก ${dayOffset} วัน`;
-  const statusClass = dueSoon ? 'rust' : 'teal';
+  const statusClass = dueSoon ? 'danger' : 'ok';
 
   el.innerHTML = `
     <div class="hero-cell">
       <span class="hero-cell-label">เวลา · TIME</span>
-      <div class="flap-row">
-        <span class="flap">${digits[0]}</span><span class="flap">${digits[1]}</span>
-        <span class="flap amber" style="min-width:16px;font-size:18px">:</span>
-        <span class="flap">${digits[2]}</span><span class="flap">${digits[3]}</span>
-      </div>
+      <div class="hero-value">${escapeHtml(fmtTime(schedule.send_at_local))}</div>
     </div>
     <div class="hero-cell">
       <span class="hero-cell-label">กลุ่ม · ROUTE</span>
-      <div class="flap-row"><span class="flap wide">${escapeHtml(group?.name ?? '—')}</span></div>
+      <div class="hero-value small">${escapeHtml(group?.name ?? '—')}</div>
     </div>
     <div class="hero-cell">
       <span class="hero-cell-label">สถานะ · STATUS</span>
-      <div class="flap-row"><span class="flap wide ${statusClass}">${statusText}</span></div>
+      <div class="hero-value small ${statusClass}">${statusText}</div>
     </div>
   `;
-  requestAnimationFrame(() => {
-    el.querySelectorAll('.flap').forEach((f, i) => {
-      setTimeout(() => f.classList.add('flipping'), i * 55);
-    });
-  });
 }
 
 // -------------------------------------------------------------------- quota
@@ -406,8 +417,8 @@ function renderMessage() {
     state.schedules.filter((s) => s.message_id === templateId).length;
 
   el.innerHTML = state.templates.map((t) => `
-    <div class="field" style="border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:12px">
-      <label>${escapeHtml(t.name)} <span style="color:var(--muted)">(ใช้อยู่ ${usageCount(t.id)} ตาราง)</span></label>
+    <div class="field" style="border-bottom:1px solid var(--border-default);padding-bottom:12px;margin-bottom:12px">
+      <label>${escapeHtml(t.name)} <span>(ใช้อยู่ ${usageCount(t.id)} ตาราง)</span></label>
       <textarea data-template-id="${t.id}">${escapeHtml(t.body)}</textarea>
       <div class="row">
         <button data-action="save-message" data-id="${t.id}">บันทึก</button>

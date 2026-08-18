@@ -9,19 +9,22 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/app.css" />
-  <style>
-    .demo-banner {
-      background: var(--amber);
-      color: #241703;
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-align: center;
-      padding: 8px 12px;
-    }
-    .demo-banner a { color: #241703; }
-  </style>
+  <script>
+    (function () {
+      var t = 'light';
+      try {
+        var s = localStorage.getItem('linemsg_theme');
+        if (s === 'light' || s === 'dark') {
+          t = s;
+        } else {
+          var m = document.cookie.match(/(?:^|;\\s*)theme=([^;]*)/);
+          var c = m ? decodeURIComponent(m[1]) : '';
+          if (c === 'light' || c === 'dark') t = c;
+        }
+      } catch (e) {}
+      document.documentElement.dataset.theme = t;
+    })();
+  </script>
 </head>
 <body>
   <div class="demo-banner">
@@ -37,6 +40,7 @@
       </div>
       <div class="row">
         <span id="clock" class="header-clock"></span>
+        <button type="button" class="theme-toggle-btn" id="theme-toggle" aria-label="สลับธีม" title="สลับธีม">◐</button>
       </div>
     </header>
 

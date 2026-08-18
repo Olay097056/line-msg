@@ -105,6 +105,14 @@ No framework, no build step, no ORM:
   automatic JSON body parsing is disabled for the webhook route, because
   re-serializing a parsed body produces different bytes than what LINE
   signed, silently breaking HMAC verification.
+- **Theme is a HyperUI token set, light-first with a dark mode**: the UI
+  uses the same cross-project `data-theme` contract as the rest of the
+  author's projects (light by default, `[data-theme='dark']` override,
+  persisted in `localStorage['linemsg_theme']` with a no-FOUC inline head
+  script and an in-header toggle). Colors derive exclusively from the
+  semantic token block in `public/app.css` — surfaces use `--bg-*`,
+  status colors use `--success/--warning/--danger` soft+text pairs — so a
+  theme change is one `data-theme` attribute away, not a per-class edit.
 
 ## Local development
 
