@@ -1,5 +1,7 @@
 node_modules/
 .vercel/
 .env*
+.dev.vars
+.wrangler/
 .scratch/
 dist/

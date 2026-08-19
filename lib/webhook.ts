@@ -8,7 +8,7 @@
 // when the payload is "the same".
 
 import crypto from 'node:crypto';
-import type { Db } from './db.js';
+import type { DbLike } from './db.js';
 import type { LineClient } from './line.js';
 
 export function verifySignature(rawBody: string, signatureHeader: string | undefined, channelSecret: string): boolean {
@@ -28,7 +28,7 @@ export type LineEvent = {
 
 export type WebhookBody = { events?: LineEvent[] };
 
-export type HandleDeps = { db: Db; line: LineClient };
+export type HandleDeps = { db: DbLike; line: LineClient };
 
 /**
  * Processes one webhook payload. Never throws outward — LINE retries on

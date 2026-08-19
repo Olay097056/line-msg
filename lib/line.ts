@@ -10,7 +10,7 @@
 
 const BASE = 'https://api.line.me';
 
-export type Fetcher = typeof fetch;
+export type Fetcher = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
 export type LineResult<T> = {
   ok: boolean;
@@ -23,9 +23,17 @@ export class LineClient {
   #token: string;
   #fetch: Fetcher;
 
-  constructor(token: string, fetchImpl: Fetcher = fetch) {
+  constructor(token: string, fetchImpl?: Fetcher) {
     this.#token = token;
-    this.#fetch = fetchImpl;
+    // Cloudflare Workers: global `fetch` must be called with the global as
+    // `this`. Storing the raw reference and calling it later raises
+    // "TypeError: Illegal invocation: function called with incorrect
+    // `this` reference". Wrapping in a closure that calls `fetch` re-bound to
+    // the global scope avoids that (Workers error docs, illegal-invocation).
+    this.#fetch =
+      fetchImpl ??
+      ((input, init) =>
+        globalThis.fetch(input as string | URL | Request, init));
   }
 
   async #call<T>(path: string, init: RequestInit = {}): Promise<LineResult<T>> {

@@ -1,7 +1,7 @@
 // Send orchestration: the one place that decides whether a push happens and
 // guarantees a send_logs row exists either way.
 
-import { Db, isUniqueViolation } from './db.js';
+import { Db, isUniqueViolation, type DbLike } from './db.js';
 import { LineClient } from './line.js';
 import { checkQuota, findDue, type QuotaState, type Schedule } from './decide.js';
 import { bangkokClock } from './time.js';
@@ -27,7 +27,7 @@ export type SendOutcome = {
   recipients?: number;
 };
 
-export type Deps = { db: Db; line: LineClient };
+export type Deps = { db: DbLike; line: LineClient };
 
 /** Live quota state, refreshed from LINE and mirrored into quota_snapshots. */
 export async function readQuota({ db, line }: Deps): Promise<QuotaState> {

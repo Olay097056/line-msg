@@ -1,0 +1,27 @@
+# Cloudflare Pages / Workers config for line-msg (D1 migration).
+#
+# Pages Functions need nodejs_compat so the webhook's node:crypto HMAC and
+# bcryptjs work on the Workers runtime (both rely on Node-compatible crypto +
+# Buffer, which are gated behind this compatibility flag).
+
+name = "line-msg"
+compatibility_date = "2026-04-30"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "public"
+
+# D1 database (created via `wrangler d1 create line-msg`).
+[[d1_databases]]
+binding = "DB"
+database_name = "line-msg"
+database_id = "f15d138b-2c74-474a-832b-0870be86aae0"
+
+# Secret / non-secret bindings. These come from `.dev.vars` locally and from
+# the Cloudflare dashboard (Settings → Variables and Secrets) in production.
+# Never commit real values.
+#
+# Required (set in the dashboard as Secrets, NOT [vars] below — a [vars]
+# entry overrides/blanked a same-named Secret):
+#   LINE_CHANNEL_ACCESS_TOKEN
+#   LINE_CHANNEL_SECRET
+#   CRON_SECRET
+#   SESSION_SECRET

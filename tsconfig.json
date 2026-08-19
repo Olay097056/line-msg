@@ -7,13 +7,9 @@
     "types": ["node"],
     "strict": true,
     "skipLibCheck": true,
-    // Vercel compiles each api/*.ts file on its own and does NOT rewrite import
-    // specifiers, so relative imports must already point at the emitted .js
-    // name. The test suite runs against `tsc` output in dist/ for the same
-    // reason — one module resolution story everywhere.
     "outDir": "dist",
     "rootDir": ".",
     "sourceMap": true
   },
-  "include": ["api/**/*.ts", "lib/**/*.ts", "test/**/*.ts"]
+  "include": ["api/**/*.ts", "lib/**/*.ts", "test/**/*.ts", "functions/**/*.ts"]
 }

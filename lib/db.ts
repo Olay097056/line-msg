@@ -1,12 +1,26 @@
-// Thin PostgREST client for Supabase.
+// Thin PostgREST client for Supabase (Vercel path).
 //
 // The service_role key bypasses RLS, which is the whole access model: every
 // table has RLS on with zero policies (migration 0001), so anon/authenticated
 // can read nothing and only this server-side path works.
+//
+// DbLike is the shared structural interface both the PostgREST Db and the D1
+// Db (lib/d1.ts) implement, so http/send/webhook can accept either without
+// depending on private fields.
 
 export type Fetcher = typeof fetch;
+export type DbRow = Record<string, unknown>;
+export type Row = DbRow;
 
-export class Db {
+export interface DbLike {
+  select(table: string, query?: string): Promise<any[]>;
+  insert(table: string, rows: unknown, opts?: { returning?: boolean }): Promise<any[]>;
+  update(table: string, query: string, patch: unknown): Promise<any[]>;
+  delete(table: string, query: string): Promise<any[]>;
+  log(level: string, event: string, detail?: unknown): Promise<void>;
+}
+
+export class Db implements DbLike {
   #url: string;
   #key: string;
   #fetch: Fetcher;

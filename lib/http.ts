@@ -10,18 +10,36 @@
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 
-import { Db } from './db.js';
+import { Db, type DbLike } from './db.js';
+import { Db as D1Db, type D1Binding } from './d1.js';
 import { LineClient } from './line.js';
+import { getCfEnv } from './cf-env.js';
 
 export const SESSION_COOKIE = 'lmv2_session';
 
 export function env(name: string): string {
+  // Cloudflare Pages Functions: bindings come from context.env (set via the
+  // adapter into cf-env). Fall back to process.env (Vercel + node tests).
+  const cf = getCfEnv();
+  if (cf) {
+    const v = cf[name];
+    if (v != null && v !== '') return String(v);
+    throw new Error(`missing env ${name}`);
+  }
   const value = process.env[name];
   if (!value) throw new Error(`missing env ${name}`);
   return value;
 }
 
-export function deps() {
+export function deps(): { db: DbLike; line: LineClient } {
+  const cf = getCfEnv();
+  if (cf) {
+    // D1 migration path: use the D1 client bound to the Cloudflare database.
+    return {
+      db: new D1Db(cf.DB as D1Binding),
+      line: new LineClient(env('LINE_CHANNEL_ACCESS_TOKEN')),
+    };
+  }
   return {
     db: new Db(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY')),
     line: new LineClient(env('LINE_CHANNEL_ACCESS_TOKEN')),
@@ -74,19 +92,19 @@ function readCookie(req: any, name: string): string | null {
   return null;
 }
 
-export async function storedPasswordHash(db: Db): Promise<string | null> {
+export async function storedPasswordHash(db: DbLike): Promise<string | null> {
   const rows = await db.select('app_settings', 'select=value&key=eq.admin_password_hash');
   return rows[0]?.value ?? null;
 }
 
-export async function verifyPassword(db: Db, password: string): Promise<string | null> {
+export async function verifyPassword(db: DbLike, password: string): Promise<string | null> {
   const hash = await storedPasswordHash(db);
   if (!hash) return null;
   return (await bcrypt.compare(password, hash)) ? hash : null;
 }
 
 /** Returns true when the request carries a valid session cookie. */
-export async function hasSession(req: any, db: Db): Promise<boolean> {
+export async function hasSession(req: any, db: DbLike): Promise<boolean> {
   const cookie = readCookie(req, SESSION_COOKIE);
   if (!cookie) return false;
   const hash = await storedPasswordHash(db);
@@ -95,7 +113,7 @@ export async function hasSession(req: any, db: Db): Promise<boolean> {
 }
 
 /** Gate for control-panel routes. Writes the 401 itself and returns false. */
-export async function requireSession(req: any, res: any, db: Db): Promise<boolean> {
+export async function requireSession(req: any, res: any, db: DbLike): Promise<boolean> {
   if (await hasSession(req, db)) return true;
   json(res, 401, { error: 'ต้องเข้าสู่ระบบก่อน' });
   return false;
