@@ -7,9 +7,9 @@
 ระบบจะยิงข้อความเตือนเข้ากลุ่ม LINE ที่ทีมใช้งานกันอยู่แล้ว ตรงเวลาที่งานนั้นต้องทำจริง
 
 สร้างเป็นหน้าเว็บควบคุม + ตัวจับเวลาที่ผูกกับฐานข้อมูล + เชื่อมต่อ LINE
-Messaging API เต็มรูปแบบ รันอยู่บน Vercel + Supabase free tier ทั้งหมด
+Messaging API เต็มรูปแบบ รันอยู่บน Cloudflare free tier ทั้งหมด
 
-**[ลองใช้ demo ได้เลย](https://olay097056.github.io/line-msg-demo/)** — ไม่ต้อง
+**[ลองใช้ demo ได้เลย](https://line-msg.pages.dev/demo)** — ไม่ต้อง
 login เล่นได้ทุกฟีเจอร์ ข้อมูลจำลองทั้งหมด ไม่มีอะไรไปแตะ LINE หรือฐานข้อมูล
 จริงเลย ส่วน production instance ใช้หน้าตาเดียวกันแต่ต่อกับกลุ่ม LINE จริง
 เลยไม่เปิดสาธารณะด้วยเหตุผลนั้น
@@ -32,22 +32,23 @@ trigger เช็คนาฬิกาทุกครั้งที่รัน
   เล็ก ๆ ก็ใช้โควต้า free tier หมดเร็วกว่าที่คิดได้ง่าย ๆ
 
 โปรเจกต์นี้ทำงานเดิม (ส่งข้อความตามเวลา) แต่ทำให้ทุกส่วนมองเห็นได้และแก้ไขได้
-โดยไม่ต้องแตะโค้ดเลย
+โดยไม่ต้องแตะโค้ดเลย (เวอร์ชันแรกรันบน Vercel + Supabase — ออกแบบเหมือนกัน
+แค่คนละ host ดูหัวข้อ "ประวัติ" ด้านล่าง)
 
 ## สถาปัตยกรรม
 
 ```
-Supabase pg_cron (ทุกนาที)
-        │  net.http_post พร้อม header x-cron-secret
+Cloudflare Worker Cron Trigger (00:15 & 10:15 UTC = 07:15 & 17:15 ไทย)
+        │  ยิง scheduled() ซึ่งเรียก runTick() ตัวเดียวกับที่ HTTP tick ใช้
         ▼
-Vercel serverless function  /api/tick
-        │  อ่านตาราง schedules ทำงานเฉพาะนาทีที่ตรงเวลาเป๊ะเท่านั้น
+Worker fetch() handler  /api/*
+        │  อ่าน D1 ทำงานเฉพาะตอนตารางเวลาถึงจริงเท่านั้น
         ▼
 LINE Messaging API  (push, เช็คโควต้า, เช็คจำนวนสมาชิกกลุ่ม)
         │
-Supabase Postgres  (schedules, groups, message templates, send/system logs)
+Cloudflare D1  (schedules, groups, message templates, send/system logs)
         ▲
-Vercel static frontend (vanilla JS, deployment เดียวกัน เรียก /api/* แบบ relative)
+Static frontend (vanilla JS) เสิร์ฟจาก Worker เดียวกันผ่าน [assets] binding
         ▲
 LINE webhook  →  /api/webhook  (event กลุ่ม join/leave/สมาชิกเปลี่ยน,
                   ตรวจลายเซ็น HMAC จาก raw request body)
@@ -55,17 +56,19 @@ LINE webhook  →  /api/webhook  (event กลุ่ม join/leave/สมาช�
 
 ไม่มี framework ไม่มี build step ไม่มี ORM:
 
-- **Backend**: Node/TypeScript serverless function ล้วน ๆ ในโฟลเดอร์ `api/`
-  คอมไพล์ด้วย `tsc` แล้ว deploy ผ่าน Vercel Node runtime แบบ zero-config
+- **Backend**: Cloudflare Worker ตัวเดียว (`src/worker.ts`) — route handler
+  ทุกตัวอยู่ใน `api/*.ts` เขียนครั้งเดียวใช้ซ้ำได้ทั้งจาก Worker's `fetch()`
+  และ (สำหรับ local dev / deployment สำรอง) Cloudflare Pages Functions
+  (`functions/`) ต่างกันแค่ตัวแปลง transport เท่านั้น ตัว logic จริงเหมือนกัน
 - **Frontend**: static HTML + vanilla JS ในโฟลเดอร์ `public/` เสิร์ฟจาก
-  Vercel project เดียวกับ backend เลยไม่ต้องมี CORS หรือตั้งค่า `API_BASE_URL`
-  ใด ๆ
-- **Database**: เขียน SQL migration เองในโฟลเดอร์ `supabase/migrations/`
-  ยิงผ่าน Supabase Management API — ไม่มี Postgres local ไม่ต้องรองรับ
-  SQLite คู่กับ Postgres
-- **Scheduler**: pg_cron job เดียวทำงานทุกนาที ถามฐานข้อมูลว่า "ตอนนี้ถึงเวลา
-  อะไรหรือยัง" — แก้ตารางเวลาจากหน้าเว็บมีผลตั้งแต่รอบถัดไปทันที ไม่ต้อง
-  deploy ใหม่หรือตั้ง cron ใหม่
+  Worker เดียวกันผ่าน `[assets]` binding — ไม่ต้องมี CORS หรือ `API_BASE_URL`
+- **Database**: Cloudflare D1 (SQLite) migration อยู่ที่ `d1/migrations/`
+  ยิงด้วย `wrangler d1 execute --remote`
+- **Scheduler**: Worker Cron Trigger ประกาศไว้ใน `wrangler.worker.toml`
+  ใช้งานได้ทันทีตอน `wrangler deploy` — ไม่ต้องเข้า dashboard เลย (นี่คือ
+  เหตุผลที่เลือกทำเป็น Worker ไม่ใช่ Pages: Cloudflare Pages Cron Triggers
+  ไม่มี API หรือ CLI เลย ต้องตั้งในหน้าเว็บ dashboard เท่านั้น ส่วน Worker
+  cron trigger เป็นแค่ config ธรรมดา)
 
 ## ความสามารถ
 
@@ -81,8 +84,9 @@ LINE webhook  →  /api/webhook  (event กลุ่ม join/leave/สมาช�
 - **log แยก 2 แบบ** — ประวัติการส่ง (ส่งจริงหรือข้ามเพราะอะไร) กับ log ระบบ/
   error (เหตุการณ์เบื้องหลัง, auth ล้มเหลว, webhook ทำงาน) แยกกันตั้งใจ
 - **ล็อกอินด้วยรหัสผ่าน** — รหัสผ่านเดียว hash แบบ bcrypt คุมการเข้าหน้าเว็บ
-  ส่วน endpoint ที่ scheduler เรียกใช้กลไกแยกต่างหาก (shared secret) เพราะ
-  endpoint นั้นต้องให้ Supabase เรียกได้ ซ่อนหลัง login แบบเดียวกันไม่ได้
+  ส่วน endpoint ที่ scheduler เรียก (`/api/tick`) ใช้กลไกแยกต่างหาก (shared
+  secret) เพราะ Cloudflare cron trigger เรียกเข้ามาแบบเดียวกับ client
+  ทั่วไป ไม่มี network ส่วนตัวให้ซ่อนไว้หลัง login เดียวกันได้
 
 ## จุดออกแบบที่น่าอ่าน
 
@@ -93,41 +97,50 @@ LINE webhook  →  /api/webhook  (event กลุ่ม join/leave/สมาช�
 - **โควต้านับตามจำนวนคน ไม่ใช่จำนวนครั้งที่ส่ง**: ข้อความที่ส่งเข้ากลุ่ม 7 คน
   กินโควต้า 7 ข้อความ ตัวกันโควต้าคูณด้วยจำนวนสมาชิกกลุ่มจริงที่อ่านสด ไม่ใช่
   ค่าคงที่ที่ cache ไว้
-- **นาทีที่เงียบไม่เสียอะไรเลย**: cron tick จะเรียก LINE API ก็ต่อเมื่อถึง
-  เวลาที่ตั้งไว้จริงเท่านั้น ไม่งั้น 1,440 tick ต่อวันจะกลายเป็นการเช็คโควต้า
-  1,440 ครั้งโดยไม่จำเป็น
-- **ตรวจลายเซ็น webhook ด้วย raw body**: ปิดการ parse JSON อัตโนมัติของ
-  Vercel สำหรับ route นี้ เพราะถ้าเอา body ที่ parse แล้วมา stringify กลับ
-  ไบต์จะไม่ตรงกับที่ LINE เซ็นมา ทำให้การตรวจ HMAC พังแบบเงียบ ๆ
+- **นาทีที่เงียบไม่เสียอะไรเลย**: tick จะเรียก LINE API ก็ต่อเมื่อถึงเวลาที่
+  ตั้งไว้จริงเท่านั้น — แบบ poll ทุกนาที (ดีไซน์ตั้งต้น) ถ้าไม่มีตัวกันนี้จะ
+  กลายเป็นการเช็คโควต้าทุกนาทีที่ว่างโดยไม่จำเป็น
+- **ตรวจลายเซ็น webhook ด้วย raw body**: ข้าม auto JSON parsing ของ platform
+  สำหรับ route นี้ เพราะถ้าเอา body ที่ parse แล้วมา stringify กลับ ไบต์จะ
+  ไม่ตรงกับที่ LINE เซ็นมา ทำให้การตรวจ HMAC พังแบบเงียบ ๆ
 - **ธีมเป็นชุด token แบบ HyperUI (light-first + dark mode)**: หน้าเว็บใช้
-  สัญญา `data-theme` ข้ามโปรเจกต์เดียวกันกับโปรเจกต์อื่นของผู้เขียน (ค่าเริ่ม
-  เป็น light, `[data-theme='dark']` เป็นตัวแทนธีมมืด, เก็บค่าที่
-  `localStorage['linemsg_theme']` พร้อม script no-FOUC ใน `<head>` และปุ่ม
-  สลับธีมที่ header) สีทั้งหมดมาจาก semantic token ใน `public/app.css`
-  เท่านั้น — พื้นผิวใช้ `--bg-*`, สีสถานะใช้คู่ soft+text ของ
-  `--success/--warning/--danger` — แปลว่าเปลี่ยนธีมคือแค่เปลี่ยน attribute
-  `data-theme` ตัวเดียว ไม่ใช่แก้ class ทีละตัว
+  สัญญา `data-theme` (ค่าเริ่มเป็น light, `[data-theme='dark']` เป็นตัวแทน
+  ธีมมืด, เก็บค่าที่ `localStorage['linemsg_theme']` พร้อม script no-FOUC
+  ใน `<head>` และปุ่มสลับธีมที่ header) สีทั้งหมดมาจาก semantic token ใน
+  `public/app.css` เท่านั้น — พื้นผิวใช้ `--bg-*`, สีสถานะใช้คู่ soft+text
+  ของ `--success/--warning/--danger` — แปลว่าเปลี่ยนธีมคือแค่เปลี่ยน
+  attribute `data-theme` ตัวเดียว ไม่ใช่แก้ class ทีละตัว
 
 ## รันในเครื่องตัวเอง
 
 ```bash
 npm install
-npm test            # tsc typecheck + ชุดเทสต์ node:test (LINE กับ DB ถูก
+npm test            # tsc typecheck + ชุดเทสต์ node:test (LINE กับ D1 ถูก
                      # stub ทั้งหมด ไม่มีอะไรแตะเน็ตจริง)
 ```
 
-ถ้าจะ deploy เป็นของตัวเอง: สร้าง LINE Messaging API channel, Supabase
-project, และ Vercel project แล้วกรอกค่าใน `.env.example` → `.env.local`
-จากนั้น:
+ถ้าจะ deploy เป็นของตัวเอง: สร้าง LINE Messaging API channel และบัญชี
+Cloudflare แล้วกรอกค่าใน `.env.example` → `.dev.vars` จากนั้น:
 
 ```bash
-SUPABASE_PROJECT_REF=<ref> supabase/apply.sh          # รัน migration
-SUPABASE_PROJECT_REF=<ref> supabase/set-cron-secret.sh # ตั้ง cron job
-node scripts/set-password.mjs                          # ตั้งรหัสผ่านหน้าเว็บ
-vercel deploy --prod                                    # deploy จริง
+npx wrangler d1 create line-msg                         # จด database_id ที่ได้
+npx wrangler d1 execute line-msg --remote --file=./d1/migrations/0001_init.sql
+for k in LINE_CHANNEL_ACCESS_TOKEN LINE_CHANNEL_SECRET CRON_SECRET SESSION_SECRET; do
+  npx wrangler secret put "$k" --config wrangler.worker.toml
+done
+npx wrangler deploy --config wrangler.worker.toml         # deploy จริง + ตั้ง cron trigger ให้เลย
 ```
+
+## ประวัติ
+
+เริ่มจาก Google Apps Script trigger ตัวเดียว แล้วเขียนใหม่ลง Vercel +
+Supabase Postgres (ดีไซน์เดียวกัน ใช้งานได้จริงครบ — serverless function,
+`pg_cron`, PostgREST) จากนั้นย้ายอีกรอบมา Cloudflare Workers + D1 เพื่อให้
+เหลือ vendor เดียวและ deploy ผ่าน CLI ได้ล้วน ๆ เวอร์ชัน Vercel/Supabase
+เลิกใช้แล้วแต่โค้ด (`lib/db.ts` ตัว PostgREST client) ยังอยู่ในโปรเจกต์คู่กับ
+D1 client (`lib/d1.ts`) — `lib/http.ts` เลือกใช้ตัวไหนตาม runtime ที่ได้รับมา
 
 ## Stack
 
-Node.js · TypeScript · Vercel Serverless Functions · Supabase (Postgres,
-`pg_cron`, `pg_net`) · LINE Messaging API · vanilla HTML/CSS/JS
+Node.js · TypeScript · Cloudflare Workers · D1 (SQLite) · LINE Messaging API
+· vanilla HTML/CSS/JS
