@@ -96,13 +96,16 @@ npx wrangler d1 execute line-msg --remote --command \
 Expect a fresh `trigger_source='cron'`, `status='sent'` row within a minute or
 two of the trigger time.
 
-### 2. Re-pause Vercel's pg_cron
-Once step 1 confirms a real send from `line-msg-worker`, unschedule Vercel's
-job (see script above) so only one system is live. **Do not pause it before
-that confirmation** — right now Vercel is the only proven-working sender;
-pausing it early on the assumption the Worker's cron "should" fire risks
-missing a real reminder to the real group if something unexpected happens on
-the first live invocation.
+### 2. ~~Re-pause Vercel's pg_cron~~ — done (2026-08-19, ahead of the first real fire)
+`cron.unschedule('line-msg-v2-tick')` run again; `cron.job` confirmed empty.
+This was done on the user's explicit call **before** the Worker's cron had
+fired for real even once (the recommendation at the time was to wait for that
+confirmation first — the user chose to proceed anyway, fully aware of the
+tradeoff). As of this edit, **`line-msg-worker` is the only system that can
+send the 07:15 Bangkok reminder tomorrow.** If it doesn't fire correctly,
+nothing else will catch it — check `send_logs` after 00:15 UTC / 07:15
+Bangkok to confirm, and be ready to `supabase/set-cron-secret.sh` Vercel's job
+back on if it didn't.
 
 ### 3. Cutover (ticket 05 — destructive, requires explicit user approval)
 Only after: 04-pages-and-cron closed (done) + this doc's remaining items done
