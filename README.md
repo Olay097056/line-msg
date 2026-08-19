@@ -7,8 +7,8 @@ daily and weekly tasks that nobody schedules because "we do that every day
 anyway", right up until the day nobody does. It pushes the reminder into the
 LINE group the team already lives in, at the time the task is actually due.
 
-Built as a web dashboard, a Postgres-backed scheduler, and a LINE Messaging
-API integration — running entirely on Vercel + Supabase free tiers.
+Built as a web dashboard, a D1-backed scheduler, and a LINE Messaging
+API integration — migrated to Cloudflare Pages + D1 for better performance and reliability.
 
 **[Try the demo](https://olay097056.github.io/line-msg-demo/)** — no login, fully
 interactive, entirely mock data. Nothing you do there touches LINE or the
@@ -39,17 +39,17 @@ every part of it observable and adjustable without touching code.
 ## Architecture
 
 ```
-Supabase pg_cron (every minute)
-        │  net.http_post, x-cron-secret header
+Cloudflare Pages Scheduled Function (cron triggers)
+        │  runs every minute, processes due schedules
         ▼
-Vercel serverless function  /api/tick
-        │  reads schedules table, only acts on exact-minute matches
+Cloudflare Pages Functions  /api/*
+        │  reads D1 database, calls LINE API
         ▼
 LINE Messaging API  (push, quota, group member count)
         │
-Supabase Postgres  (schedules, groups, message templates, send/system logs)
+Cloudflare D1 Database  (schedules, groups, message templates, send/system logs)
         ▲
-Vercel static frontend (vanilla JS, same deployment, relative /api/* calls)
+Cloudflare Pages static frontend (vanilla JS, same deployment, relative /api/* calls)
         ▲
 LINE webhook  →  /api/webhook  (group join/leave/member-count events,
                   HMAC-verified against the raw request body)
@@ -57,17 +57,15 @@ LINE webhook  →  /api/webhook  (group join/leave/member-count events,
 
 No framework, no build step, no ORM:
 
-- **Backend**: plain Node/TypeScript serverless functions under `api/`,
-  compiled with `tsc` and deployed by Vercel's zero-config Node runtime.
+- **Backend**: Cloudflare Pages Functions under `functions/`, using TypeScript
+  with Cloudflare's runtime environment and D1 database integration.
 - **Frontend**: static HTML + vanilla JS under `public/`, served from the
-  same Vercel project so there's no CORS or `API_BASE_URL` to configure.
-- **Database**: hand-written SQL migrations under `supabase/migrations/`,
-  applied via the Supabase Management API — no local Postgres, no
-  SQLite-vs-Postgres dual support.
-- **Scheduler**: a single `pg_cron` job ticks every minute and asks the
-  database "is anything due right now?" — editing a schedule from the
-  dashboard takes effect on the very next tick, no redeploy or cron
-  reschedule needed.
+  same Cloudflare Pages project so there's no CORS or `API_BASE_URL` to configure.
+- **Database**: D1 database with SQL migrations under `d1/migrations/`,
+  applied via Wrangler CLI and Cloudflare dashboard.
+- **Scheduler**: Cloudflare Pages Scheduled Functions with cron triggers configured
+  in the Pages dashboard (07:15 and 17:15 daily), processing due schedules
+  without external dependencies.
 
 ## What it does
 
@@ -122,17 +120,30 @@ npm test            # tsc typecheck + node:test suite (LINE and DB are
                      # fully stubbed — nothing here touches the network)
 ```
 
-To deploy your own copy: create a LINE Messaging API channel, a Supabase
-project, and a Vercel project, fill in `.env.example` → `.env.local`, then:
+To deploy your own copy: create a LINE Messaging API channel and a Cloudflare Pages project, fill in `.env.example` → `.dev.vars`, then:
 
 ```bash
-SUPABASE_PROJECT_REF=<ref> supabase/apply.sh          # run the migrations
-SUPABASE_PROJECT_REF=<ref> supabase/set-cron-secret.sh # schedule the tick job
-node scripts/set-password.mjs                          # set the dashboard password
-vercel deploy --prod                                    # ship it
+npm install
+npm test            # tsc typecheck + node:test suite (LINE and DB are
+                     # fully stubbed — nothing here touches the network)
+npx wrangler d1 execute f15d138b-2c74-474a-832b-0870be86aae0 --file=./d1/migrations/0004_migrate_full.sql
+npx wrangler pages deploy --project-name line-msg
 ```
+
+## Migration Status
+
+✅ **Completed**: Migration from Vercel/Supabase to Cloudflare Pages/D1
+- D1 database with full data migration (UUID + 21 send_logs)
+- Cloudflare Pages Functions with API routes
+- Scheduled function for cron triggers (requires manual setup in dashboard)
+- LINE Illegal invocation quota fix
+- Environment variables adapter for D1 integration
+
+**Next Steps**:
+1. Set up cron triggers in Cloudflare Pages dashboard (see `SETUP_CRON_TRIGGERS.md`)
+2. Verify scheduled messages work correctly
+3. Execute cutover script to decommission Vercel/Supabase (see `CUTOVER_SCRIPT.md`)
 
 ## Stack
 
-Node.js · TypeScript · Vercel Serverless Functions · Supabase (Postgres,
-`pg_cron`, `pg_net`) · LINE Messaging API · vanilla HTML/CSS/JS
+Node.js · TypeScript · Cloudflare Pages Functions · D1 Database · LINE Messaging API · vanilla HTML/CSS/JS
