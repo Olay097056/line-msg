@@ -13,7 +13,7 @@ raw curl output, not assumed from the deploy step succeeding:
 |---|---|
 | `GET /api/state` (no login) | 401 `ต้องเข้าสู่ระบบก่อน` — correct |
 | `POST /api/login` (real password) | 200 `{"ok":true}` |
-| `GET /api/state` (logged in) | 200, real data: quota 245/300, group CU REDACTED (7 members), 2 schedules, 1 template |
+| `GET /api/state` (logged in) | 200, real data: quota 245/300, group "CU Test Group" (7 members), 2 schedules, 1 template |
 | `POST /api/tick` (no secret) | 401 `bad cron secret` — correct |
 | `POST /api/tick` (real `CRON_SECRET`) | 200 `{"due":0,...}` — correct, not at 07:15/17:15 |
 | `POST /api/webhook` (no/bad signature) | 401 `bad signature` — correct |

@@ -2,14 +2,14 @@
 -- Idempotent: re-running changes nothing.
 --
 -- Values verified against the live LINE API on 2026-08-13:
---   GET /v2/bot/group/Cxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/summary -> "CU REDACTED"
+--   GET /v2/bot/group/Cxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/summary -> "CU Test Group"
 --   GET /v2/bot/group/Cxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/members/count -> 7
 --
 -- Message body stays "Send TIME" for now (ticket 03 หมวด F) so the cutover
 -- changes only the delivery mechanism, not the output.
 
 insert into groups (line_group_id, name, status, member_count, member_count_checked_at)
-values ('Cxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'CU REDACTED', 'active', 7, now())
+values ('Cxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'CU Test Group', 'active', 7, now())
 on conflict (line_group_id) do nothing;
 
 insert into message_templates (name, body)

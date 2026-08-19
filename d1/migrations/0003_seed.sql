@@ -8,7 +8,7 @@ insert or ignore into groups (id, line_group_id, name, status, member_count, mem
 values (
   'seed-group-demo',
   'Cxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-  'CU REDACTED',
+  'CU Test Group',
   'active',
   7,
   strftime('%Y-%m-%dT%H:%M:%fZ','now'),

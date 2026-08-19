@@ -7,7 +7,7 @@ import { dbStub, lineStub } from './helpers/stubs.js';
 const GROUP: Group = {
   id: 'g1',
   line_group_id: 'Cxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-  name: 'CU REDACTED',
+  name: 'CU Test Group',
   status: 'active',
   member_count: 7,
 };
