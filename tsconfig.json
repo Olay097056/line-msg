@@ -11,5 +11,5 @@
     "rootDir": ".",
     "sourceMap": true
   },
-  "include": ["api/**/*.ts", "lib/**/*.ts", "test/**/*.ts", "functions/**/*.ts"]
+  "include": ["api/**/*.ts", "lib/**/*.ts", "test/**/*.ts", "functions/**/*.ts", "src/**/*.ts"]
 }

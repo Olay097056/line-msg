@@ -1,0 +1,42 @@
+# Cloudflare Worker config for line-msg — the CLI-deployable alternative to
+# the Pages project in wrangler.toml. Kept as a SEPARATE project
+# (name = "line-msg-worker") so this migration cannot break the already
+# verified-working Pages deployment (line-msg.pages.dev) while it's being
+# proven out. Once this is confirmed working end-to-end (including a real
+# cron-triggered send), it can replace the Pages project — or the two can be
+# reconciled under one name; that decision comes after verification, not
+# before.
+#
+# Deploy with: wrangler deploy --config wrangler.worker.toml
+# (NOT `wrangler pages deploy` — that reads wrangler.toml, a different file.)
+
+name = "line-msg-worker"
+main = "src/worker.ts"
+compatibility_date = "2026-04-30"
+compatibility_flags = ["nodejs_compat"]
+
+# Static assets — same public/ directory the Pages project serves. Cloudflare
+# routes any request that matches a file in this directory straight to it;
+# everything else falls through to the Worker's fetch() handler, which then
+# only has to special-case /api/*.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# Cron Triggers — THE reason for this whole migration. Unlike Pages Cron
+# Triggers (dashboard-only, no API/CLI), Workers cron triggers are declared
+# here and applied automatically by `wrangler deploy`.
+# 07:15 Bangkok = 00:15 UTC, 17:15 Bangkok = 10:15 UTC (UTC+7, no DST).
+[triggers]
+crons = ["15 0 * * *", "15 10 * * *"]
+
+# Same D1 database as the Pages deployment — single source of truth, no data
+# fork between the two while this is being verified.
+[[d1_databases]]
+binding = "DB"
+database_name = "line-msg"
+database_id = "f15d138b-2c74-474a-832b-0870be86aae0"
+
+# Secrets set via: wrangler secret put <NAME> --config wrangler.worker.toml
+# Required: LINE_CHANNEL_ACCESS_TOKEN, LINE_CHANNEL_SECRET, CRON_SECRET,
+# SESSION_SECRET — never commit real values.
