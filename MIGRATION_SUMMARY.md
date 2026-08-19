@@ -66,19 +66,28 @@ were active at once, the group would get every reminder twice.
   # select cron.unschedule('line-msg-v2-tick')
   ```
 
-## 🔄 Remaining tasks
+## ✅ Cron Triggers — solved via a Worker, not the Pages dashboard
 
-### 1. Cron Triggers Setup (manual, dashboard only — no CLI/API exists)
-See `SETUP_CRON_TRIGGERS.md` (corrected). Cloudflare Pages has no REST API or
-`wrangler` command for Pages Cron Triggers — confirmed by probing the API
-directly (unknown sub-paths silently return the parent project resource
-instead of a distinct endpoint or a 404).
+Pages Cron Triggers genuinely have no API/CLI (confirmed by probing the CF
+API directly — unknown sub-paths silently return the parent project resource
+instead of a distinct endpoint or a 404). Rather than requiring a manual
+dashboard click, the app was repackaged as a plain Cloudflare **Worker**
+(`src/worker.ts` + `wrangler.worker.toml`, deployed as a *separate* project
+`line-msg-worker` so the working Pages deployment stays untouched) — Workers
+support `[triggers].crons` in `wrangler.toml`, applied automatically by
+`wrangler deploy`, no dashboard needed.
 
-1. Cloudflare dashboard → Pages → `line-msg` → Settings → Cron Triggers
-2. Add `15 0 * * *` → `scheduled.ts`
-3. Add `15 10 * * *` → `scheduled.ts`
+- **Live**: `https://line-msg-worker.olay097056.workers.dev`
+- **Cron triggers confirmed via the Workers schedules API** (not just the
+  deploy log): `15 0 * * *` and `15 10 * * *`, both persisted.
+- **Full verify checklist re-run on this URL — all green**: static assets,
+  login (right/wrong password), state (real data), tick (auth gate + due
+  logic), webhook (real HMAC signature check). Identical results to the
+  Pages deployment.
+- Same D1 database (`line-msg`) as the Pages project — single source of
+  truth, not forked data.
 
-### 2. Verify a real send happens
+### 1. Verify a real send happens
 After the next 00:15 or 10:15 UTC passes, check D1:
 ```bash
 npx wrangler d1 execute line-msg --remote --command \
@@ -87,28 +96,42 @@ npx wrangler d1 execute line-msg --remote --command \
 Expect a fresh `trigger_source='cron'`, `status='sent'` row within a minute or
 two of the trigger time.
 
-### 3. Re-pause Vercel's pg_cron
-Once step 2 confirms a real CF send, unschedule Vercel's job (see script
-above) so only one system is live before extending the trial further.
+### 2. Re-pause Vercel's pg_cron
+Once step 1 confirms a real send from `line-msg-worker`, unschedule Vercel's
+job (see script above) so only one system is live. **Do not pause it before
+that confirmation** — right now Vercel is the only proven-working sender;
+pausing it early on the assumption the Worker's cron "should" fire risks
+missing a real reminder to the real group if something unexpected happens on
+the first live invocation.
 
-### 4. Cutover (ticket 05 — destructive, requires explicit user approval)
+### 3. Cutover (ticket 05 — destructive, requires explicit user approval)
 Only after: 04-pages-and-cron closed (done) + this doc's remaining items done
 + at least one real CF-originated send confirmed in D1 + Vercel's cron paused
 again. Then, and only with the user's explicit go-ahead on that specific
 step: archive Vercel, delete Supabase (`CUTOVER_SCRIPT.md`).
 
-## 📁 Files (unchanged from the original migration)
+## 📁 Files
 
 - `d1/migrations/0001_init.sql`, `0003_seed.sql`, `0004_migrate_full.sql`
-- `functions/api/[[path]].ts`, `functions/scheduled.ts`
-- `lib/cf-env.ts`, `lib/d1.ts`
-- `wrangler.toml`
+- `functions/api/[[path]].ts`, `functions/scheduled.ts` — Pages Functions
+  (kept; `line-msg.pages.dev` still works, just has no cron trigger set)
+- `src/worker.ts`, `wrangler.worker.toml` — the Worker deployment that
+  actually owns the cron triggers now (`line-msg-worker.olay097056.workers.dev`)
+- `lib/cf-env.ts`, `lib/d1.ts` — shared by both deployments
 - `test/cf-adapter.test.ts`, `test/d1.test.ts`
+
+**Two live Cloudflare deployments exist** — this is intentional during the
+trial, not a mistake: Pages (`line-msg.pages.dev`, no cron, everything else
+verified) and Worker (`line-msg-worker.olay097056.workers.dev`, cron +
+everything else verified). Once the Worker's cron is proven with a real fire,
+decide whether to keep both, or drop the Pages one — no rush either way,
+neither costs anything extra and only the Worker's cron triggers ever fire.
 
 ## Progress
 
-Infra: deployed and verified working (login/state/tick-auth/webhook all
-correct on the real URL). Blocked only on a manual dashboard step (cron
-triggers) that no agent or script can perform, plus proving one real send.
-Cutover (destructive) has not started — Vercel and Supabase are both still
-fully intact.
+Infra: **fully deployed and verified working**, cron triggers included —
+solved via a Worker instead of the (nonexistent) Pages Cron Trigger API.
+Only remaining gap: an actual cron-triggered send has not fired yet (next one
+is 00:15 UTC / 07:15 Bangkok). Vercel's `pg_cron` stays enabled until that's
+confirmed in D1, then gets paused again. Cutover (destructive) has not
+started — Vercel and Supabase are both still fully intact.
